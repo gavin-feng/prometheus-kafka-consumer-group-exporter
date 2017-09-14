@@ -10,10 +10,14 @@ import (
 )
 
 func TestParsePartitionTableForKafkaVersion0_10_0_1(t *T) {
-	partitions, err := parsePartitionOutput(`GROUP                          TOPIC                          PARTITION  CURRENT-OFFSET  LOG-END-OFFSET  LAG             OWNER
-foobar-consumer topic-A                      2          12345200        12345200        0               foobar-consumer-1-StreamThread-1-consumer_/192.168.1.1
-foobar-consumer topic-A                      1          45678335        45678337        2               foobar-consumer-1-StreamThread-1-consumer_/192.168.1.2
-foobar-consumer topic-A                      0          91011178        91011179        1               foobar-consumer-1-StreamThread-1-consumer_/192.168.1.3`)
+	partitions, err := parsePartitionOutput(`note:xxx...
+
+
+GROUP                          TOPIC                          PARTITION  CURRENT-OFFSET  LOG-END-OFFSET  LAG             OWNER
+selector-sort                  27         0               0               0          consumer-77-b88428ee-bdb2-40ff-95d3-d4788dca45d2  /192.168.7.80                  consumer-77
+selector-sort                  27         -               0               -          consumer-77-b88428ee-bdb2-40ff-95d3-d4788dca45d2  /192.168.7.80                  consumer-77
+selector-sort                  21         29579           29579           0          consumer-71-452110eb-f7f0-467b-a519-eeec8b8cdf4b  /192.168.7.80                  consumer-71
+quotation-task                 39         1521059         1521079         20         consumer-190-05984c79-16a6-4846-94d1-0e7ed76d6dbc /192.168.7.80                  consumer-190`)
 
 	if err != nil {
 		t.Fatal(err)
@@ -21,73 +25,34 @@ foobar-consumer topic-A                      0          91011178        91011179
 
 	expected := []*exporter.PartitionInfo{
 		{
-			Topic:           "topic-A",
-			PartitionID:     "2",
-			CurrentOffset:   12345200,
+			Topic:           "selector-sort",
+			PartitionID:     "27",
+			CurrentOffset:   0,
 			Lag:             0,
-			ClientID:        "foobar-consumer-1-StreamThread-1-consumer",
-			ConsumerAddress: "192.168.1.1",
+			ClientID:        "consumer-77",
+			ConsumerAddress: "/192.168.7.80",
 		},
 		{
-			Topic:           "topic-A",
-			PartitionID:     "1",
-			CurrentOffset:   45678335,
-			Lag:             2,
-			ClientID:        "foobar-consumer-1-StreamThread-1-consumer",
-			ConsumerAddress: "192.168.1.2",
+			Topic:           "selector-sort",
+			PartitionID:     "21",
+			CurrentOffset:   29579,
+			Lag:             0,
+			ClientID:        "consumer-71",
+			ConsumerAddress: "/192.168.7.80",
 		},
 		{
-			Topic:           "topic-A",
-			PartitionID:     "0",
-			CurrentOffset:   91011178,
-			Lag:             1,
-			ClientID:        "foobar-consumer-1-StreamThread-1-consumer",
-			ConsumerAddress: "192.168.1.3",
+			Topic:           "quotation-task",
+			PartitionID:     "39",
+			CurrentOffset:   1521059,
+			Lag:             20,
+			ClientID:        "consumer-190",
+			ConsumerAddress: "/192.168.7.80",
 		},
 	}
 
 	comparePartitionTable(t, partitions, expected)
 }
 
-func TestParsePartitionTableForKafkaVersion0_9_0_1(t *T) {
-	partitions, err := parsePartitionOutput(`GROUP, TOPIC, PARTITION, CURRENT OFFSET, LOG END OFFSET, LAG, OWNER
-foobar-consumer, topic-A, 2, 12344967, 12344973, 6, foobar-consumer-1-StreamThread-1-consumer_/192.168.1.1
-foobar-consumer, topic-A, 1, 45678117, 45678117, 0, foobar-consumer-1-StreamThread-1-consumer_/192.168.1.2
-foobar-consumer, topic-A, 0, 91011145, 91011145, 0, foobar-consumer-1-StreamThread-1-consumer_/192.168.1.3`)
-
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	expected := []*exporter.PartitionInfo{
-		{
-			Topic:           "topic-A",
-			PartitionID:     "2",
-			CurrentOffset:   12344967,
-			Lag:             6,
-			ClientID:        "foobar-consumer-1-StreamThread-1-consumer",
-			ConsumerAddress: "192.168.1.1",
-		},
-		{
-			Topic:           "topic-A",
-			PartitionID:     "1",
-			CurrentOffset:   45678117,
-			Lag:             0,
-			ClientID:        "foobar-consumer-1-StreamThread-1-consumer",
-			ConsumerAddress: "192.168.1.2",
-		},
-		{
-			Topic:           "topic-A",
-			PartitionID:     "0",
-			CurrentOffset:   91011145,
-			Lag:             0,
-			ClientID:        "foobar-consumer-1-StreamThread-1-consumer",
-			ConsumerAddress: "192.168.1.3",
-		},
-	}
-
-	comparePartitionTable(t, partitions, expected)
-}
 func comparePartitionTable(t *T, values, expected []*exporter.PartitionInfo) {
 	if len(values) != len(expected) {
 		t.Fatal("Not same lengths. Was:", len(values), "Was:", len(expected))

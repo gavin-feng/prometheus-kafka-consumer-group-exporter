@@ -68,7 +68,7 @@ func parseGroups(output string) ([]string, error) {
 		return nil, fmt.Errorf("Got runtime error when executing script. Output: %s", output)
 	}
 
-	lines := strings.Split(output, "\n")
+	lines := strings.Split(output, "\n")[2:]
 	groups := make([]string, 0, len(lines))
 	for _, line := range lines {
 		if line != "" {
@@ -98,32 +98,31 @@ func parseLong(value string) (int64, error) {
 
 func parsePartitionInfo(line string) (*exporter.PartitionInfo, error) {
 	fields := consumerGroupCommandDescribeOutputSeparatorRegexp.Split(line, -1)
-	if len(fields) != 7 {
+	if len(fields) != 8 {
 		return nil, fmt.Errorf("malformed line: %s", line)
 	}
 
 	var err error
 
 	var currentOffset int64
-	currentOffset, err = parseLong(fields[3])
+	currentOffset, err = parseLong(fields[2])
 	if err != nil {
 		log.Warn("unable to parse int for current offset. line: %s", line)
 	}
 
 	var lag int64
-	lag, err = parseLong(fields[5])
+	lag, err = parseLong(fields[4])
 	if err != nil {
 		log.Warn("unable to parse int for lag. line: %s", line)
 	}
 
-	clientID, consumerAddress := parseClientIDAndConsumerAddress(fields[6])
 	partitionInfo := &exporter.PartitionInfo{
-		Topic:           fields[1],
-		PartitionID:     fields[2],
+		Topic:           fields[0],
+		PartitionID:     fields[1],
 		CurrentOffset:   currentOffset,
 		Lag:             lag,
-		ClientID:        clientID,
-		ConsumerAddress: consumerAddress,
+		ClientID:        fields[7],
+		ConsumerAddress: fields[6],
 	}
 
 	return partitionInfo, nil
@@ -134,12 +133,15 @@ func parsePartitionOutput(output string) ([]*exporter.PartitionInfo, error) {
 		return nil, fmt.Errorf("Got runtime error when executing script. Output: %s", output)
 	}
 
-	lines := strings.Split(output, "\n")[1:] /* discard header line */
+	lines := strings.Split(output, "\n")[4:] /* discard header line */
 	partitionInfos := make([]*exporter.PartitionInfo, 0, len(lines))
 	for _, line := range lines {
 		if line == "" {
 			continue
 		}
+                if strings.Contains(line, " - ") {
+                        continue
+                }
 		partitionInfo, err := parsePartitionInfo(line)
 		if err != nil {
 			errMsg := fmt.Sprintf("failed to parse a line of group description: '%s'. Error: %s", line, err)
