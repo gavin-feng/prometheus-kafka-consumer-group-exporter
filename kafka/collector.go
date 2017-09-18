@@ -139,6 +139,9 @@ func parsePartitionOutput(output string) ([]*exporter.PartitionInfo, error) {
 		if line == "" {
 			continue
 		}
+                if strings.Contains(line, "TOPIC") {
+                        continue
+                }
                 if strings.Contains(line, " - ") {
                         continue
                 }
